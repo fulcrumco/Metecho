@@ -6,7 +6,6 @@ import shutil
 import subprocess
 import time
 from datetime import datetime
-from pathlib import Path
 
 from cumulusci.core.config import OrgConfig, TaskConfig
 from cumulusci.core.runtime import BaseCumulusCI
@@ -418,15 +417,14 @@ def run_flow(*, cci, org_config, flow_name, project_path, user):
     )
     orig_stdout, _ = p.communicate()
     if p.returncode:
-        log_file_path = Path.home() / '.cumulusci' / 'logs' / 'cci.log'
-        if log_file_path.exists():
-            with log_file_path.open('r') as log_file:
-                traceback = log_file.read()
-        else:
-            traceback = orig_stdout.decode('utf-8')
-        
+        p = subprocess.run(
+            [command, "error", "info"], capture_output=True, env=env
+        )
+        traceback = p.stdout.decode("utf-8")
         logger.warning(traceback)
-        raise SubcommandException(_last_line(traceback))
+        raise SubcommandException(
+            _last_line(traceback) or _last_line(orig_stdout.decode("utf-8"))
+        )
 
 
 def delete_org(scratch_org):
